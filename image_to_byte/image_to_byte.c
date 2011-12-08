@@ -139,7 +139,7 @@ void write_data( FILE *file, unsigned char *buffer, unsigned width, unsigned hei
 		// print the image bit
 		else
 		{
-			fprintf(file, "%s, ", (buffer[(u-buffered)*3] > 0x0) ? "X" : "_");
+			fprintf(file, "%s,", (buffer[(u-buffered)*3] > 0x0) ? "X" : "_");
 //			fprintf(file, "%d,", (u-buffered) % 10);
 		}
 	} // for loop through image

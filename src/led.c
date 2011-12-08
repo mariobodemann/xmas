@@ -14,9 +14,6 @@
 #include "../assets/image.h"
 
 #define DELAY 1
-#define _ 0x00
-#define X 0xFF
-
 
 unsigned char image[] = {
 //      0                   1                   2 
