@@ -8,9 +8,16 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
+#include "byte.h"
+
+// include binary image
+#include "../assets/image.h"
+
 #define DELAY 1
 #define _ 0x00
 #define X 0xFF
+
+
 unsigned char image[] = {
 //      0                   1                   2 
 //      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 
@@ -136,9 +143,8 @@ unsigned char image[] = {
         _,_,_,_,_,_,_,_,_,X,X,X,X,X,X,X,X,X,X,X,X,X,_,_,_,_,_,_,_,_,
         _,_,_,_,_,_,_,_,_,_,_,X,X,X,X,X,X,X,X,X,_,_,_,_,_,_,_,_,_,_,
 	_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,
-        
-//      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 
-//      0                   1                   2 
+//      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9
+//      0                   1                   2
 };
 
 int main (void)
@@ -146,7 +152,7 @@ int main (void)
 	// setup debug port
 	DDRD = 0xFF;
 	PORTD =0xFF;
-	
+
 	// setup led panel for writing (output)
 	DDRB = 0xFF;
 
@@ -165,14 +171,14 @@ int main (void)
 			PORTB = 0 << 2; 	// set clock
 		}
 		PORTB = 1 << 1; 	// set latch
-			
+
 		// line completed
-		_delay_ms(DELAY);		
-		
+		_delay_ms(DELAY);
+
 		line ++;
 		line = line % lines;
 	}
-	
+
 	// never reached!
    	return 0;
 }

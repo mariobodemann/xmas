@@ -47,7 +47,7 @@ F_OSC = 3686400
 FORMAT = ihex
 
 # Target file name (without extension).
-TARGET = led
+TARGET = src/led
 
 
 # List C source files here. (C dependencies are automatically generated.)
@@ -78,7 +78,7 @@ DEBUG = dwarf-2
 
 # List any extra directories to look for include files here.
 #     Each directory must be seperated by a space.
-EXTRAINCDIRS = 
+EXTRAINCDIRS = ./include
 
 
 # Compiler flag to set the C Standard level.
