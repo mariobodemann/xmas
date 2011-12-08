@@ -8,7 +8,7 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-#define DELAY 8
+#define DELAY 1
 #define _ 0x00
 #define X 0xFF
 unsigned char image[] = {
@@ -138,15 +138,6 @@ int main (void)
 		line ++;
 		if( line == lines )
 		{
-			// complete image done, erase image
-			PORTB = 0x00f;
-			for( unsigned u = 0; u < 30; ++u)
-			{
-				PORTB = 1 << 2;
-				PORTB = 0 << 2;
-			}
-			PORTB = 1 << 1;
-			_delay_ms( 5*lines * DELAY );
 			line = 0;
 		}
 	}
