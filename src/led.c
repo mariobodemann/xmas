@@ -11,7 +11,7 @@
 #include "byte.h"
 
 // include binary image
-#include "../assets/image.h"
+#include "../assets/earth-transposed.h"
 
 #define DELAY 1
 #define LED_BAR_SIZE 30
