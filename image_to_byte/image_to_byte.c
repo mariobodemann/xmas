@@ -5,11 +5,12 @@
 #include <stdlib.h>
 #include <math.h>
 
-unsigned calc_size( unsigned width, unsigned height );
-unsigned calc_bit_width( unsigned width);
-void write_header( FILE *file, unsigned width, unsigned height );
+int calc_size( int width, int height );
+int calc_bit_width( int width);
+
+void write_header( FILE *file, const char *sourcefile, int width, int height );
 void write_footer( FILE *file );
-void write_data( FILE *file, unsigned char *buffer, unsigned width, unsigned height);
+void write_data( FILE *file, char *buffer, int width, int height);
 
 int main(int argc, char **argv)
 {
@@ -21,7 +22,16 @@ int main(int argc, char **argv)
 	}
 
 	// open image
-	FILE* file = fopen( argv[1], "r" );
+	FILE* file = NULL; 
+	if( argv[1][0] == '-' && argv[1][1] == '\0')
+	{
+		file = stdin;
+	}
+	else
+	{
+		file = fopen( argv[1], "r" );
+	}
+	
 	if( !file )
 	{
 		printf("Could not open source.\n");
@@ -38,8 +48,8 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
-	unsigned char *buffer = (unsigned char*)malloc( file_size );
-	unsigned bytes_read = fread( buffer, 1, file_size, file );
+	char *buffer = (char*)malloc( file_size );
+	int bytes_read = fread( buffer, 1, file_size, file );
 	while( bytes_read  < file_size)
 	{
 		bytes_read += fread(buffer+bytes_read, 1, file_size-bytes_read, file);
@@ -52,18 +62,31 @@ int main(int argc, char **argv)
 		printf("Source image is not an bmp!\n");
 		return 3;
 	}
-	unsigned width = (unsigned)*((char*)buffer+0x12);
-	unsigned height = (unsigned)*((char*)buffer+0x16);
+	int width = (int)*(buffer+0x12);
+	int height = (int)*(buffer+0x16);
+	
+	if( width <=1 || height <= 1 )
+	{
+		printf("Source image's size (%dx%d) is invalid\n", width, height);
+		return 4;
+	}
 
 	// create output
-	file = fopen(argv[2], "w");
+	if( argv[2][0] == '-' && argv[2][1] == '\0')
+	{
+		file = stdout;
+	}
+	else
+	{
+		file = fopen(argv[2], "w");
+	}
 	if( !file )
 	{
 		printf("Could not open output file\n");
 		return 4;
 	}
 
-	write_header(file, width, height);
+	write_header(file, argv[1], width, height);
 	write_data(file, buffer+54, width, height);
 	write_footer(file);
 
@@ -75,27 +98,30 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-unsigned calc_bit_width( unsigned width)
+int calc_bit_width( int width)
 {
 	return (ceilf(width/8.0f)*8);
 }
 
-unsigned calc_size( unsigned width, unsigned height )
+int calc_size( int width, int height )
 {
 	return calc_bit_width(width)*height;
 }
 
-void write_header( FILE *file, unsigned width, unsigned height )
+void write_header( FILE *file, const char *sourcefile, int width, int height )
 {
-	fprintf( file,  "// GENERATED IMAGE FILE\n");
-	fprintf( file, 	"unsigned g_image_width = %d;\n"
-			"unsigned g_image_height = %d;\n"
-			"unsigned g_image_size = %d; // size in bits, including filled bits! \n\n"
-			, width, height, calc_size(width, height));
+	int bit_width = calc_bit_width( width );
+	fprintf( file,  "// GENERATED BINARY IMAGE FROM \"%s\"\n", sourcefile);
+	fprintf( file, 	"#define g_image_width %d\n"
+			"#define g_image_width_in_bytes %d\n"
+			"#define g_image_width_padding %d // size of padding per line in bit\n\n"
+			"#define g_image_height %d\n"
+			"#define g_image_size %d // size in bits, including filled bits! \n\n"
+			, width, bit_width/8, bit_width - width, height, calc_size(width, height));
 	fprintf( file,  "#define _ 0\n"
 			"#define X 1\n"
-			"#define F 0 // FILL BIT\n\n"
-			"Byte g_image[] = {\n");
+			"#define P 0 // PADBIT\n\n"
+			"Byte g_image[] =\n{\n");
 }
 
 void write_footer( FILE *file )
@@ -103,45 +129,46 @@ void write_footer( FILE *file )
 	fprintf(file, "};\n");
 }
 
-void write_data( FILE *file, unsigned char *buffer, unsigned width, unsigned height)
+void write_data( FILE *file, char *buffer, int width, int height)
 {
-	unsigned size = calc_size(width,height);
-	unsigned bit_width = calc_bit_width(width);
-	unsigned buffered = 0;
-	fprintf(file, "\t{ ");
-	for( unsigned u = 0; u < size; ++u) // ignore rgb parts, and use only b
+	int size = calc_size(width,height);
+	int bit_width = calc_bit_width(width);
+	int line = 0;
+	
+	for( int y = 0; y < height; ++y)
 	{
-		// check if new line is needed
-		if( ( u % bit_width) == 0 && u != 0)
+		fprintf(file, "\t{ ");
+		for( int x = 0; x < width; ++x)
 		{
-			// newline
-			fprintf(file, " },\n\t{ ");
-		}
-		// check if next bit will be in a new byte
-		else if( (u % 8) == 0 && u != 0)
-		{
-			fprintf(file, " }, { ");
-		}
-		// check if next bit is a new nibble
-		else if( (u % 4) == 0 && u != 0)
-		{
-			fprintf(file, " ");
-		}
+			// check if next bit will be in a new byte
+			if( (x % 8) == 0 && x != 0)
+			{
+				fprintf(file, " }, { ");
+			}
+			// check if next bit is a new nibble
+			else if( (x % 4) == 0 && x != 0)
+			{
+				fprintf(file, " ");
+			}
 
 
-		// check if this is a fill bit
-		if( (u % bit_width ) > width-1 )
-		{
-			// print fill bit
-			fprintf(file, "F,");
-			buffered ++;
+			// take 24 bit and 4 byte alligned bmps into account
+			int line = (height-1-y);
+			int byte_boundary = width % 4;
+			fprintf(file, "%s,", (buffer[(x+line*width)*3+line*byte_boundary] != 0) ? "X" : "_");
 		}
-		// print the image bit
-		else
+		
+		// print fill bits
+		for( unsigned u = 0; u < (bit_width -width); ++u)
 		{
-			fprintf(file, "%s,", (buffer[(u-buffered)*3] > 0x0) ? "X" : "_");
-//			fprintf(file, "%d,", (u-buffered) % 10);
+			if( ((u+width) % 4) == 0)
+			{
+				fprintf(file, " ");
+			}
+			fprintf(file, "P,");
 		}
-	} // for loop through image
-	fprintf(file, " }, \n");
+
+		// newline
+		fprintf(file, " }, \n");
+	}
 }
